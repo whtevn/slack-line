@@ -42,14 +42,14 @@ require('yargs')
       },
       'channel': {
         alias: 'c',
-        demand: true,
         describe: 'name of the channel you wish to read or write to'
       }
     }, 
     function (argv) {
       const info = slack_info(argv.slackInfo)
+      const channel = argv.channel||info.user.channel;
       
-      return Slack.read(info.feed_ids[argv.channel],
+      return Slack.read(info.feed_ids[channel],
                         {time: argv.time, count: argv.number},
                         info.user)
                   .then(history => history.map(entry => `${date_of(entry).yellow}\t${entry.username.cyan}\t${entry.text}`))
@@ -70,7 +70,6 @@ require('yargs')
       },
       'channel': {
         alias: 'c',
-        demand: true,
         describe: 'name of the channel you wish to read or write to'
       },
       message: {
@@ -79,8 +78,10 @@ require('yargs')
       }
     },
     function(argv){
-      return Slack.write(argv.channel, argv.message, slack_info(argv.slackInfo).user)
-                  .then(_ => console.log(`message sent to #${argv.channel}`))
+      const info = slack_info(argv.slackInfo);
+      const channel = argv.channel||info.user.channel;
+      return Slack.write(channel, argv.message, info.user)
+                  .then(_ => console.log(`message sent to #${channel}`))
                   .catch(e => {
                     console.log(e.stack)
                     process.exit(1)
