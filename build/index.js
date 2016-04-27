@@ -29,7 +29,7 @@ function read(channel) {
       return p;
     }, {});
     var history = result[1].data.messages.map(function (c) {
-      c.username = users[c.user];
+      c.username = users[c.user] || "bot";
       return c;
     });
     return history;

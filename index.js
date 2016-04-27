@@ -16,7 +16,7 @@ export function read(channel, constraints={}, slack_info){
               return p;
             }, {}); 
             const history = result[1].data.messages.map((c)=>{
-              c.username = users[c.user]
+              c.username = users[c.user]||"bot"
               return c
             })
             return history

@@ -40,10 +40,12 @@ require('yargs').usage('$0 <cmd> [args]').command('read', 'Read recent messages 
     describe: 'location of slack info file'
   },
   time: {
-    alias: "t"
+    alias: "t",
+    description: "get all messages since this time"
   },
   number: {
-    alias: "n"
+    alias: "n",
+    description: "get this many messages"
   },
   'channel': {
     alias: 'c',
@@ -58,9 +60,14 @@ require('yargs').usage('$0 <cmd> [args]').command('read', 'Read recent messages 
       return date_of(entry).yellow + '\t' + entry.username.cyan + '\t' + entry.text;
     });
   }).then(function (history) {
+    return history.reverse();
+  }).then(function (history) {
     return history.join("\n");
   }).then(function (history) {
     return console.log(history);
+  }).catch(function (e) {
+    console.log(e.stack);
+    process.exit(1);
   });
 }).command('write', 'write a message to a slack channel', {
   'slack-info': {
@@ -79,6 +86,7 @@ require('yargs').usage('$0 <cmd> [args]').command('read', 'Read recent messages 
   }
 }, function (argv) {
   return Slack.write(argv.channel, argv.message, slack_info(argv.slack_info).user).catch(function (e) {
-    return console.log(e);
+    console.log(e.stack);
+    process.exit(1);
   });
 }).help('help').argv;

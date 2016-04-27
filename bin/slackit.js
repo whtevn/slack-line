@@ -55,7 +55,11 @@ require('yargs')
                   .then(history => history.map(entry => `${date_of(entry).yellow}\t${entry.username.cyan}\t${entry.text}`))
                   .then(history => history.reverse())
                   .then(history => history.join("\n"))
-                  .then(history => console.log(history));
+                  .then(history => console.log(history))
+                  .catch(e => {
+                    console.log(e.stack)
+                    process.exit(1)
+                  })
     }
   )
   .command('write', 'write a message to a slack channel', {
@@ -76,7 +80,10 @@ require('yargs')
     },
     function(argv){
       return Slack.write(argv.channel, argv.message, slack_info(argv.slack_info).user)
-        .catch(e => console.log(e))
+                  .catch(e => {
+                    console.log(e.stack)
+                    process.exit(1)
+                  })
     }
   )
   .help('help')
