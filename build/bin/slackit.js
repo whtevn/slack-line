@@ -85,7 +85,7 @@ require('yargs').usage('$0 <cmd> [args]').command('read', 'Read recent messages 
     demand: true
   }
 }, function (argv) {
-  return Slack.write(argv.channel, argv.message, slack_info(argv.slack_info).user).catch(function (e) {
+  return Slack.write(argv.channel, argv.message, slack_info(argv.slackInfo).user).catch(function (e) {
     console.log(e.stack);
     process.exit(1);
   });

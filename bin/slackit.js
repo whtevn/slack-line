@@ -79,7 +79,7 @@ require('yargs')
       }
     },
     function(argv){
-      return Slack.write(argv.channel, argv.message, slack_info(argv.slack_info).user)
+      return Slack.write(argv.channel, argv.message, slack_info(argv.slackInfo).user)
                   .catch(e => {
                     console.log(e.stack)
                     process.exit(1)
