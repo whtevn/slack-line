@@ -80,6 +80,7 @@ require('yargs')
     },
     function(argv){
       return Slack.write(argv.channel, argv.message, slack_info(argv.slackInfo).user)
+                  .then(_ => console.log(`message sent to #${argv.channel}`))
                   .catch(e => {
                     console.log(e.stack)
                     process.exit(1)
