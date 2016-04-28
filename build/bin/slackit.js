@@ -9,11 +9,13 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 var dateFormat = require('dateformat');
 var colors = require('colors');
+var project_info = require('../package.json');
 
 
 var HOME = function HOME(_) {
   return process.env.HOME || process.env.USERPROFILE;
 };
+var default_home = HOME() + '/.slack_info.json';
 
 var date_of = function date_of(entry) {
   var entry_date = new Date(entry.ts.split('.')[0] * 1000);
@@ -33,10 +35,10 @@ function slack_info(loc) {
   return slack_info;
 }
 
-require('yargs').usage('$0 <cmd> [args]').command('read', 'Read recent messages from a channel', {
+var read_options = {
   'slack-info': {
     alias: 's',
-    default: HOME() + '/.slack_info.json',
+    default: default_home,
     describe: 'location of slack info file'
   },
   time: {
@@ -49,15 +51,39 @@ require('yargs').usage('$0 <cmd> [args]').command('read', 'Read recent messages 
   },
   'channel': {
     alias: 'c',
-    demand: true,
     describe: 'name of the channel you wish to read or write to'
   }
-}, function (argv) {
-  var info = slack_info(argv.slackInfo);
+};
 
-  return Slack.read(info.feed_ids[argv.channel], { time: argv.time, count: argv.number }, info.user).then(function (history) {
+var write_options = {
+  'slack-info': {
+    alias: 's',
+    default: default_home,
+    describe: 'location of slack info file'
+  },
+  'channel': {
+    alias: 'c',
+    describe: 'name of the channel you wish to read or write to'
+  },
+  message: {
+    alias: "m",
+    demand: true
+  }
+};
+
+var display_attachments = function display_attachments(attachments) {
+  return attachments && attachments.map(function (a) {
+    return a.text;
+  }) || '';
+};
+
+function read_from_slack(argv) {
+  var info = slack_info(argv.slackInfo);
+  var channel = argv.channel || info.user.channel;
+
+  return Slack.read(info.feed_ids[channel], { time: argv.time, count: argv.number }, info.user).then(function (history) {
     return history.map(function (entry) {
-      return date_of(entry).yellow + '\t' + entry.username.cyan + '\t' + entry.text;
+      return date_of(entry).yellow + '\t' + entry.username.cyan + '\t' + entry.text + display_attachments(entry.attachments);
     });
   }).then(function (history) {
     return history.reverse();
@@ -69,26 +95,56 @@ require('yargs').usage('$0 <cmd> [args]').command('read', 'Read recent messages 
     console.log(e.stack);
     process.exit(1);
   });
-}).command('write', 'write a message to a slack channel', {
-  'slack-info': {
-    alias: 's',
-    default: HOME() + '/.slack_info.json',
-    describe: 'location of slack info file'
-  },
-  'channel': {
-    alias: 'c',
-    demand: true,
-    describe: 'name of the channel you wish to read or write to'
-  },
-  message: {
-    alias: "m",
-    demand: true
-  }
-}, function (argv) {
-  return Slack.write(argv.channel, argv.message, slack_info(argv.slackInfo).user).then(function (_) {
-    return console.log('message sent to #' + argv.channel);
+}
+
+function write_to_slack(argv) {
+  var info = slack_info(argv.slackInfo);
+  var channel = argv.channel || info.user.channel;
+  return Slack.write(channel, argv.message, info.user).then(function (_) {
+    return console.log('message sent to #' + channel);
   }).catch(function (e) {
     console.log(e.stack);
     process.exit(1);
   });
-}).help('help').argv;
+}
+
+var yargs = require('yargs');
+
+yargs.usage('$0 <cmd> [args]').command('read', 'Read recent messages from a channel', read_options, read_from_slack).command('write', 'write a message to a slack channel', write_options, write_to_slack)
+/*.command('repl', 'interactive command line interface', function(argv){
+  var inquirer = require('inquirer');
+  const repl = function(){
+    const new_yarg = yargs
+                      .reset()
+                      .resetOptions()
+                      .help()
+                      .command(
+                        'read',
+                        'Read recent messages from a channel', 
+                        read_options, 
+                        read_from_slack
+                      )
+                      .command('write', 'write a message to a slack channel', 
+                        write_options,
+                        write_to_slack 
+                      )
+    return inquirer.prompt([
+              {
+                type: 'input',
+                name: 'command',
+                message: '>'
+              }
+            ])
+            .then((answers) => {
+              new_yarg
+                .parse(answers.command)
+                .argv
+            })
+            .then(repl)
+            .catch(e => console.log(e))
+  }
+  repl();
+})*/
+.help('help').alias('h', 'help').version(function (_) {
+  return 'slack-line version ' + project_info.version;
+}).alias('v', 'version').argv;
