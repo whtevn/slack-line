@@ -117,7 +117,7 @@ function read_from_slack(argv) {
   }).then(function (history) {
     return console.log(history);
   }).catch(function (e) {
-    console.log(e.stack);
+    console.log(e);
     process.exit(1);
   });
 }

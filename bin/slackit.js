@@ -100,7 +100,7 @@ function read_from_slack(argv) {
               .then(history => history.join("\n"))
               .then(history => console.log(history))
               .catch(e => {
-                console.log(e.stack)
+                console.log(e)
                 process.exit(1)
               })
 }
