@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.start = start;
 exports.read = read;
 exports.write = write;
 
@@ -12,6 +13,12 @@ var minutes_ago = function minutes_ago() {
   var t = arguments.length <= 0 || arguments[0] === undefined ? 20 : arguments[0];
   return new Date(new Date().getTime() - t * 60000).getTime() / 1000.0;
 };
+
+function start(slack_info) {
+  return (0, _slack.slack_request)("rtm.start", slack_info).then(function (response) {
+    return response.data;
+  });
+}
 
 function read(channel) {
   var constraints = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
@@ -23,7 +30,7 @@ function read(channel) {
     constraints.oldest = minutes_ago(constraints.time);
     delete constraints.time;
   }
-  return Promise.all([(0, _slack.slack_request)("users.list", slack_info), (0, _slack.slack_request)("channels.history", Object.assign(slack_info, constraints))]).then(function (result) {
+  return Promise.all([(0, _slack.slack_request)("users.list", slack_info), (0, _slack.slack_request)("channels.history", slack_info, constraints)]).then(function (result) {
     var users = result[0].data.members.reduce(function (p, c) {
       p[c.id] = c.name;
       return p;
@@ -36,6 +43,10 @@ function read(channel) {
   });
 }
 
-function write(channel, text, slack_info) {
-  return (0, _slack.slack_post)("chat.postMessage", Object.assign(slack_info, { channel: channel, text: text }));
+function write(channel, text) {
+  for (var _len = arguments.length, info = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    info[_key - 2] = arguments[_key];
+  }
+
+  return _slack.slack_post.apply(undefined, ["chat.postMessage"].concat(info, [{ channel: channel, text: text }]));
 }

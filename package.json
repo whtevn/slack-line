@@ -31,6 +31,8 @@
     "colors": "^1.1.2",
     "dateformat": "^1.0.12",
     "inquirer": "^1.0.2",
+    "logrotate-stream": "^0.2.5",
+    "mkdirp": "^0.5.1",
     "ws": "^1.1.0",
     "yargs": "^4.6.0"
   },
