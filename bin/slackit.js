@@ -147,6 +147,7 @@ function record(slack_info={history: DEFAULT_HISTORY}, message, channel){
 function start_slack(info){
   return Slack.start(info.user)
       .then(slack_data => {
+        if(!slack_data.ok) throw new Error(slack_data.error)
         const followed_channels = slack_data
                                     .channels
                                     .filter(channel => info.follow.indexOf(channel.name)>-1)
