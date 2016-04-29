@@ -143,7 +143,7 @@ function log_message(message, environment, slack_info){
   if(message.bot_id){
     name = environment.bots[message.bot_id].name
   }
-  name = name||'unknown-bot';
+  name = message.username||name||'unknown-bot';
 
   const channel = environment.channels[message.channel].name
   const attachments = message.attachments

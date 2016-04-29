@@ -30,16 +30,8 @@ function read(channel) {
     constraints.oldest = minutes_ago(constraints.time);
     delete constraints.time;
   }
-  return Promise.all([(0, _slack.slack_request)("users.list", slack_info), (0, _slack.slack_request)("channels.history", slack_info, constraints)]).then(function (result) {
-    var users = result[0].data.members.reduce(function (p, c) {
-      p[c.id] = c.name;
-      return p;
-    }, {});
-    var history = result[1].data.messages.map(function (c) {
-      c.username = users[c.user] || "bot";
-      return c;
-    });
-    return history;
+  return (0, _slack.slack_request)("channels.history", slack_info, constraints).then(function (result) {
+    return result.data.messages;
   });
 }
 

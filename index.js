@@ -14,18 +14,8 @@ export function read(channel, constraints={}, slack_info){
     constraints.oldest = minutes_ago(constraints.time);
     delete constraints.time;
   }
-  return Promise.all([slack_request("users.list", slack_info), slack_request("channels.history", slack_info, constraints)])
-          .then(result => {
-            const users = result[0].data.members.reduce((p, c)=>{
-              p[c.id] = c.name;
-              return p;
-            }, {}); 
-            const history = result[1].data.messages.map((c)=>{
-              c.username = users[c.user]||"bot"
-              return c
-            })
-            return history
-          })
+  return slack_request("channels.history", slack_info, constraints)
+          .then(result =>  result.data.messages)
 }
 
 export function write(channel, text, ...info){
