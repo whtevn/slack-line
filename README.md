@@ -1,3 +1,8 @@
+
+command line interface for some simple interractions with slack.com 
+
+this is a work in progress. feel free to contact through github with questions, concerns, or pull requests
+
 installation
 ============
   
