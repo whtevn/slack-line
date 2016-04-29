@@ -91,11 +91,19 @@ function read_from_slack(argv) {
                 const channels = result.slack_data.channels.filter(function(c){ return c.name == channel })
                 if(!channels.length) throw 'no such channel';
                 const channel_id = channels[0].id
-                return Slack.read(channel_id,
-                    {time: argv.time, count: argv.number},
-                    info.user)
+                return Slack.read(channel_id, {time: argv.time, count: argv.number}, info.user)
+                            .then(history => {
+                              return {
+                                environment: result.environment,
+                                history,
+                                channel_id
+                              }
+                            })
               })
-              .then(history => history.map(entry => `${date_of(entry).yellow}\t${entry.username.cyan}\t${entry.text}${display_attachments(entry.attachments)}`))
+              .then(result => result.history.map(entry => {
+                entry.channel = result.channel_id;
+                return log_message(entry, result.environment, info)
+              }))
               .then(history => history.reverse())
               .then(history => history.join("\n"))
               .then(history => console.log(history))
@@ -132,9 +140,11 @@ function log_message(message, environment, slack_info){
   if(message.user){
     name = environment.users[message.user].name
   }
-  if(message.bot){
-    name = environment.bots[message.bot].name
+  if(message.bot_id){
+    name = environment.bots[message.bot_id].name
   }
+  name = name||'unknown-bot';
+
   const channel = environment.channels[message.channel].name
   const attachments = message.attachments
   return `${date_of(message).yellow}\t${name.cyan}\t${message.text}${display_attachments(attachments)}`
@@ -191,7 +201,7 @@ function follow_slack(argv){
                     const name = environment.channels[channel_id].name;
                     const filename = `${buffer_base}/${name}.log`;
                     buffers[channel_id] = {
-                      writeable: !argv.zen && fs.createWriteStream(filename),
+                      stream: !argv.zen && fs.createWriteStream(filename),
                       filename,
                       name
                     };
@@ -201,12 +211,12 @@ function follow_slack(argv){
                   rtm.on(RTM_EVENTS.MESSAGE, function (message) {
                     const buffer = channel_buffers[message.channel];
                     if(buffer){
-                      // add -q --quiet option
+                       const log_entry = log_message(message, environment)
                       if(!argv.quiet){
-                        console.log(buffer.name, log_message(message, environment));
+                        console.log(buffer.name, log_entry);
                       }
                       if(!argv.zen){
-                        buffer.writeable.write(`${log_message(message, environment)}\n`)
+                        buffer.stream.write(`${log_entry}\n`)
                       }
                     }
                   });
