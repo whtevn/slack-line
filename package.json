@@ -1,42 +1,42 @@
 {
-  "name": "slack-line",
-  "version": "0.0.6",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "babel-node index.js",
-    "build": "babel -d build *.js lib/*.js bin/*.js && cp ./package.json ./build",
-    "bin": "babel-node bin/slackit.js"
-  },
-  "directories": {
-    "lib": "build/lib",
-    "bin": "build/bin"
-  },
-  "babel": {
-    "presets": [
-      "es2015"
-    ]
-  },
-  "keywords": [
-    "slack",
-    "cli",
-    "utility"
-  ],
-  "author": "Evan Short < evan.short@gmail.com >",
-  "license": "ISC",
-  "dependencies": {
-    "@slack/client": "^3.0.0",
-    "axios": "^0.10.0",
-    "colors": "^1.1.2",
-    "dateformat": "^1.0.12",
-    "inquirer": "^1.0.2",
-    "logrotate-stream": "^0.2.5",
-    "mkdirp": "^0.5.1",
-    "ws": "^1.1.0",
-    "yargs": "^4.6.0"
-  },
-  "devDependencies": {
-    "babel-cli": "^6.7.7"
-  }
+	"name": "slack-line",
+	"version": "0.1.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"start": "babel-node index.js",
+		"build": "babel -d build *.js lib/*.js bin/*.js && cp ./package.json ./build",
+		"bin": "babel-node bin/slackit.js"
+	},
+	"directories": {
+		"lib": "build/lib",
+		"bin": "build/bin"
+	},
+	"babel": {
+		"presets": [
+			"es2015"
+		]
+	},
+	"keywords": [
+		"slack",
+		"cli",
+		"utility"
+	],
+	"author": "Evan Short < evan.short@gmail.com >",
+	"license": "ISC",
+	"dependencies": {
+		"@slack/client": "^3.0.0",
+		"axios": "^0.10.0",
+		"colors": "^1.1.2",
+		"dateformat": "^1.0.12",
+		"inquirer": "^1.0.2",
+		"logrotate-stream": "^0.2.5",
+		"mkdirp": "^0.5.1",
+		"ws": "^1.1.0",
+		"yargs": "^4.6.0"
+	},
+	"devDependencies": {
+		"babel-cli": "^6.7.7"
+	}
 }
