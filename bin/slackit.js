@@ -161,9 +161,12 @@ function start_slack(info){
         const followed_channels = slack_data
                                     .channels
                                     .filter(channel => info.follow.indexOf(channel.name)>-1)
+        const followed_groups = slack_data
+                                    .groups
+                                    .filter(channel => info.follow.indexOf(channel.name)>-1)
         const user_dictionary = get_dictionary(slack_data.users)
         const bot_dictionary = get_dictionary(slack_data.bots)
-        const channel_dictionary = get_dictionary(followed_channels)
+        const channel_dictionary = get_dictionary([...followed_channels, ...followed_groups]);
         const environment = {
           users: user_dictionary,
           bots: bot_dictionary,

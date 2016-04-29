@@ -7,6 +7,8 @@ var Slack = _interopRequireWildcard(_index);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 var RtmClient = require('@slack/client').RtmClient;
 var mkdirp = require('mkdirp');
 
@@ -181,9 +183,12 @@ function start_slack(info) {
     var followed_channels = slack_data.channels.filter(function (channel) {
       return info.follow.indexOf(channel.name) > -1;
     });
+    var followed_groups = slack_data.groups.filter(function (channel) {
+      return info.follow.indexOf(channel.name) > -1;
+    });
     var user_dictionary = get_dictionary(slack_data.users);
     var bot_dictionary = get_dictionary(slack_data.bots);
-    var channel_dictionary = get_dictionary(followed_channels);
+    var channel_dictionary = get_dictionary([].concat(_toConsumableArray(followed_channels), _toConsumableArray(followed_groups)));
     var environment = {
       users: user_dictionary,
       bots: bot_dictionary,
