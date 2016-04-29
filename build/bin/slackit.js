@@ -168,6 +168,7 @@ function record() {
 
 function start_slack(info) {
   return Slack.start(info.user).then(function (slack_data) {
+    if (!slack_data.ok) throw new Error(slack_data.error);
     var followed_channels = slack_data.channels.filter(function (channel) {
       return info.follow.indexOf(channel.name) > -1;
     });
