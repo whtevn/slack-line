@@ -34,7 +34,7 @@ export function start(slack_info){
 }
 
 export function read(slack_info, channel_name, constraints={}, log_function){
-  const channel = (channel_name || slack_info.user.channel);
+  const channel = (channel_name || slack_info["default-channel"]);
   if(!channel) throw new Error("no channel defined");
   return start(slack_info).then(env => {
      const query_obj = {
@@ -54,7 +54,7 @@ export function read(slack_info, channel_name, constraints={}, log_function){
 }
 
 export function write(slack_info, channel_name, text){
-  const channel = (channel_name || slack_info.user.channel);
+  const channel = (channel_name || slack_info["default-channel"]);
   if(!channel) throw new Error("no channel defined");
   return start(slack_info).then(env => {
      const query_obj = {
@@ -63,30 +63,33 @@ export function write(slack_info, channel_name, text){
        link_names: 1,
        text
      };
-    return slack_post("chat.postMessage", query_obj)
+    return slack_post("chat.postMessage", Object.assign({}, query_obj, slack_info.user))
+            .then(_ => channel)
   })
 }
 
 export function follow(slack_info, log_function){
   if(!slack_info.follow) throw new Error("not following any channels or groups");
   return start(slack_info).then(env => {
-    const rtm = new RtmClient(info.user.token, {logLevel: 'error'});
+    const rtm = new RtmClient(slack_info.user.token, {logLevel: 'error'});
     const CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS;
     const RTM_EVENTS = require('@slack/client').RTM_EVENTS;
     const followed_channels = slack_info.follow.reduce((map, channel_id) => {
       let result = {};
-      result[channel_id] = env.channel_name_dictionary[channel_id];
+      result[env.channel_name_dictionary[channel_id]] = channel_id;
       return Object.assign({}, map, result);
     }, {})
     rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
       console.log(`Logged in as ${rtmStartData.self.name} to the ${rtmStartData.team.name} team`);
     })
+    rtm.on(RTM_EVENTS.ERROR, (err) => console.log(err))
     rtm.on(RTM_EVENTS.MESSAGE, function (message) {
       const channel = followed_channels[message.channel];
       if(channel){
         log_function(breakdown(message, env));
       }
     })
+    rtm.start();
   })
 }
 

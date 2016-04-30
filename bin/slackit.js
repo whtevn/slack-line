@@ -26,8 +26,9 @@ function retrieve_config(loc){
     console.log(`slack info file not found in ${loc}`)
     slack_info = {user: {}};
   }
-  const token = slack_info.user.slack_token  || process.env.SLACK_TOKEN
-  slack_info.user = Object.assign(slack_info.user, {token}); 
+  const token = (slack_info.user&&slack_info.user.slack_token)  || slack_info.token || process.env.SLACK_TOKEN
+  slack_info.user = Object.assign((slack_info.user||{as_user:1}), {token}); 
+  if(slack_info.user.channel) throw new Error(`${loc} no longer uses user.channel. use "default-channel" on the main object instead.`.yellow+"\nSee https://www.npmjs.com/package/slack-line for more information".cyan);
   return slack_info
 }
 
@@ -82,6 +83,12 @@ const write_options = {
         console.log(fn(message, environment));
       }
     }
+
+    function save_and_output(fn, argv, buffers){
+      return function(message, environment, buffers){
+        console.log(fn(message, environment));
+      }
+    }
 yargs
   .usage('$0 <cmd> [args]')
   .command('read', 'Read recent messages from a channel', 
@@ -99,14 +106,21 @@ yargs
   .command('write', 'write a message to a slack channel', 
     write_options,
     function(argv){
-      Slack.write(slack_info, channel_name, text)
-      .catch(e => console.log(e.stack))
+      const slack_info = retrieve_config(argv.slackInfo)
+      Slack.write(slack_info, argv.channel, argv.message)
+           .then(channel => console.log(`message written to #${channel}`))
+           .catch(e => console.log(e.stack))
     }
   )
   .command('follow', 'pipe channels defined in --slack-info to files', 
     Object.assign({}, read_options, follow_options),
     function(argv){
-      Slack.follow(slack_info, output(display.log_message, argv))
+      // find out if --quiet or --zen are there
+      // if --zen, use `output` 
+      // if --quiet, use `save`
+      // if neither, use both
+      const slack_info = retrieve_config(argv.slackInfo)
+      Slack.follow(slack_info, save_and_output(display.log_message, argv))
       .catch(e => console.log(e.stack))
     }
   )
