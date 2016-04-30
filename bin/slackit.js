@@ -1,27 +1,24 @@
 #!/usr/bin/env node
-var RtmClient = require('@slack/client').RtmClient;
-var mkdirp = require('mkdirp');
-    
-var logrotate = require('logrotate-stream')
-
-
 const fs = require('fs');
-var dateFormat = require('dateformat');
-var colors = require('colors');
-var project_info   = require('../package.json');
-import * as Slack from '../index.js';
 
-const HOME = _ => process.env.HOME || process.env.USERPROFILE;
-const DEFAULT_HOME = `${HOME()}/.slack_info.json`;
-const DEFAULT_HISTORY = `${HOME()}/.slack`;
+const mkdirp = require('mkdirp');
+const yargs = require('yargs')
+const dateFormat = require('dateformat');
+const colors = require('colors');
 
-const date_of = entry => {
-  const entry_date = new Date(entry.ts.split('.')[0]*1000)
-  return dateFormat(entry_date, "h:MMt");
-}
-const WebSocket = require('ws');
+import project_info from '../package.json';
+import * as Slack   from '../index';
+import * as display from '../lib/display';
+// Slack.start(slack_info)
+// Slack.read(slack_info, channel_name, constraints={}, log_function){
+// Slack.write(slack_info, channel_name, text){
+// Slack.follow(slack_info, log_function){
 
-function slack_info(loc){
+const HOME = process.env.HOME || process.env.USERPROFILE;
+const DEFAULT_HOME = `${HOME}/.slack_info.json`;
+const DEFAULT_HISTORY = `${HOME}/.slack`;
+
+function retrieve_config(loc){
   let slack_info;
   try{
     slack_info = require(loc);
@@ -80,171 +77,38 @@ const write_options = {
       }
     }
 
-const display_attachments = attachments=>(attachments&&attachments.map((a)=>a.text)||'')
-
-function read_from_slack(argv) {
-  const info = slack_info(argv.slackInfo)
-  const channel = argv.channel||info.user.channel;
-  
-  return start_slack(info)
-              .then(function(result){
-                const channels = result.slack_data.channels.filter(function(c){ return c.name == channel })
-                if(!channels.length) throw 'no such channel';
-                const channel_id = channels[0].id
-                return Slack.read(channel_id, {time: argv.time, count: argv.number}, info.user)
-                            .then(history => {
-                              return {
-                                environment: result.environment,
-                                history,
-                                channel_id
-                              }
-                            })
-              })
-              .then(result => result.history.map(entry => {
-                entry.channel = result.channel_id;
-                return log_message(entry, result.environment, info)
-              }))
-              .then(history => history.reverse())
-              .then(history => history.join("\n"))
-              .then(history => console.log(history))
-              .catch(e => {
-                console.log(e)
-                process.exit(1)
-              })
-}
-
-function write_to_slack(argv){
-  const info = slack_info(argv.slackInfo);
-  const channel = argv.channel||info.user.channel;
-  return start_slack(info).then(result =>{
-    const username = result.slack_data.self.name;
-    const token = info.user.token;
-    return Slack.write(channel, argv.message, {username}, info.user)
-                .then(_ => console.log(`message sent to #${channel}`))
-  })
-  .catch(e => {
-    console.log(e.stack)
-    process.exit(1)
-  })
-}
-
-const get_dictionary = (item) => item.filter(i => !i.hasOwnProperty('deleted') || !i.deleted)
-                                     .reduce((item_set, item) => {
-                                        let new_item = {};
-                                        new_item[item.id] = {name: item.name};
-                                        return Object.assign({}, item_set, new_item);
-                                      }, {})
-
-function log_message(message, environment, slack_info){
-  let name;
-  if(message.user){
-    name = environment.users[message.user].name
-  }
-  if(message.bot_id){
-    name = environment.bots[message.bot_id].name
-  }
-  name = message.username||name||'unknown-bot';
-
-  const channel = environment.channels[message.channel].name
-  const attachments = message.attachments
-  return `${date_of(message).yellow}\t${name.cyan}\t${message.text}${display_attachments(attachments)}`
-}
-
-function record(slack_info={history: DEFAULT_HISTORY}, message, channel){
-
-}
-
-function start_slack(info){
-  return Slack.start(info.user)
-      .then(slack_data => {
-        if(!slack_data.ok) throw new Error(slack_data.error)
-        const followed_channels = slack_data
-                                    .channels
-                                    .filter(channel => info.follow.indexOf(channel.name)>-1)
-        const followed_groups = slack_data
-                                    .groups
-                                    .filter(channel => info.follow.indexOf(channel.name)>-1)
-        const user_dictionary = get_dictionary(slack_data.users)
-        const bot_dictionary = get_dictionary(slack_data.bots)
-        const channel_dictionary = get_dictionary([...followed_channels, ...followed_groups]);
-        const environment = {
-          users: user_dictionary,
-          bots: bot_dictionary,
-          channels: channel_dictionary
-        }
-        return {
-          environment,
-          slack_data
-        }
-      })
-}
-
-function follow_slack(argv){
-  const info = slack_info(argv.slackInfo);
-  const channel = argv.channel||info.user.channel;
-  return start_slack(info)
-        .then(info =>{
-          info.buffer_base = slack_info.history || DEFAULT_HISTORY;
-
-          return new Promise((resolve, reject) => mkdirp(info.buffer_base, function (err) {
-            if (err) throw reject(err);
-            resolve(info);
-          }))
-        })
-        .then(function(result){
-                const environment = result.environment;
-                const slack_data  = result.slack_data;
-                const buffer_base  = result.buffer_base;
-                const rtm = new RtmClient(info.user.token, {logLevel: 'error'});
-                var CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS;
-
-                rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
-                  console.log(`Logged in as ${rtmStartData.self.name} to the ${rtmStartData.team.name} team`);
-                  const channel_buffers = Object.keys(environment.channels).reduce((buffers, channel_id) => {
-                    const name = environment.channels[channel_id].name;
-                    const filename = `${buffer_base}/${name}.log`;
-                    buffers[channel_id] = {
-                      stream: !argv.zen && fs.createWriteStream(filename),
-                      filename,
-                      name
-                    };
-                    return buffers;
-                  }, {})
-
-                  rtm.on(RTM_EVENTS.MESSAGE, function (message) {
-                    const buffer = channel_buffers[message.channel];
-                    if(buffer){
-                       const log_entry = log_message(message, environment)
-                      if(!argv.quiet){
-                        console.log(buffer.name, log_entry);
-                      }
-                      if(!argv.zen){
-                        buffer.stream.write(`${log_entry}\n`)
-                      }
-                    }
-                  });
-                });
-                var RTM_EVENTS = require('@slack/client').RTM_EVENTS;
-
-                rtm.start();
-              })
-              .catch(e => console.log(e.stack))
-}
-
-const yargs = require('yargs')
+    function output(fn, argv){
+      return function(message, environment){
+        console.log(fn(message, environment));
+      }
+    }
 yargs
   .usage('$0 <cmd> [args]')
   .command('read', 'Read recent messages from a channel', 
     read_options, 
-    read_from_slack
+    function(argv){
+      const slack_info = retrieve_config(argv.slackInfo)
+      const constraints = {
+        count: argv.number,
+        oldest: argv.time
+      }
+      Slack.read(slack_info, argv.channel, constraints, output(display.log_message))
+          .catch(e => console.log(e.stack))
+    }
   )
   .command('write', 'write a message to a slack channel', 
     write_options,
-    write_to_slack 
+    function(argv){
+      Slack.write(slack_info, channel_name, text)
+      .catch(e => console.log(e.stack))
+    }
   )
   .command('follow', 'pipe channels defined in --slack-info to files', 
     Object.assign({}, read_options, follow_options),
-    follow_slack 
+    function(argv){
+      Slack.follow(slack_info, output(display.log_message, argv))
+      .catch(e => console.log(e.stack))
+    }
   )
   .help('help')
   .alias('h', 'help')
