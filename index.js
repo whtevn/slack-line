@@ -86,7 +86,7 @@ export function follow(slack_info, log_function){
     rtm.on(RTM_EVENTS.MESSAGE, function (message) {
       const channel = followed_channels[message.channel];
       if(channel){
-        log_function(breakdown(message, env));
+        log_function(breakdown(message, env), {id: message.channel, name: channel});
       }
     })
     rtm.start();
@@ -103,6 +103,7 @@ const breakdown = (message, environment) => {
   return {
     attachments, text, date,
     channel: channel_info.name,
+    channel_id: message.channel,
     username: message.username||(user&&user.name)||'unknown-bot'
   }
 }

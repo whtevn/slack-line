@@ -24,7 +24,9 @@ function slack_base_url(method) {
 
 function objects_as_qstrings(obj) {
   if (!obj) return [];
-  var qstring = Object.keys(obj).map(function (key) {
+  var qstring = Object.keys(obj).filter(function (key) {
+    return obj[key];
+  }).map(function (key) {
     return key + '=' + obj[key];
   });
 
@@ -48,7 +50,10 @@ function slack_request(method) {
     query[_key4 - 1] = arguments[_key4];
   }
 
-  return (0, _axios2.default)(slack_base_url.apply(undefined, [method].concat(query)));
+  return (0, _axios2.default)(slack_base_url.apply(undefined, [method].concat(query))).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    return result;
+  });
 }
 
 function slack_post(method) {
@@ -59,5 +64,8 @@ function slack_post(method) {
   return (0, _axios2.default)({
     method: 'post',
     url: slack_base_url.apply(undefined, [method].concat(query))
+  }).then(function (result) {
+    if (!result.data.ok) throw new Error(result.data.error);
+    return result;
   });
 }

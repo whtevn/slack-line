@@ -33,6 +33,11 @@ function retrieve_config(loc){
 }
 
 const follow_options = {
+  prefix: {
+    alias: 'p',
+    default: DEFAULT_HISTORY,
+    describe: 'define the directory followed channels will write to'
+  },
   quiet: {
     alias: 'q',
     describe: 'silence output to stdout'
@@ -78,17 +83,25 @@ const write_options = {
       }
     }
 
-    function output(fn, argv){
-      return function(message, environment){
-        console.log(fn(message, environment));
+    function output(log_message, stream=process.stdout){
+      return function(message){
+        stream.write(`${log_message(message)}\n`);
       }
     }
 
-    function save_and_output(fn, argv, buffers){
-      return function(message, environment, buffers){
-        console.log(fn(message, environment));
+    function save_and_output(log_message, argv, follow){
+      const buffers = follow.reduce((buffers, channel) => {
+        const filename = `${argv.prefix}/${channel}.log`;
+        let buffer = {};
+        buffer[channel] = fs.createWriteStream(filename);
+        return Object.assign({}, buffers, buffer);
+      }, {})
+      return function(message, channel){
+        if(!argv.quiet) output(message => `${channel.name} ${log_message(message)}`)(message)
+        if(!argv.zen)   output(log_message, buffers[channel.name])(message)
       }
     }
+
 yargs
   .usage('$0 <cmd> [args]')
   .command('read', 'Read recent messages from a channel', 
@@ -115,13 +128,9 @@ yargs
   .command('follow', 'pipe channels defined in --slack-info to files', 
     Object.assign({}, read_options, follow_options),
     function(argv){
-      // find out if --quiet or --zen are there
-      // if --zen, use `output` 
-      // if --quiet, use `save`
-      // if neither, use both
       const slack_info = retrieve_config(argv.slackInfo)
-      Slack.follow(slack_info, save_and_output(display.log_message, argv))
-      .catch(e => console.log(e.stack))
+      Slack.follow(slack_info, save_and_output(display.log_message, argv, slack_info.follow))
+           .catch(e => console.log(e.stack))
     }
   )
   .help('help')
@@ -129,4 +138,3 @@ yargs
   .version(_ => `slack-line version ${project_info.version}`)
   .alias('v', 'version')
   .argv
- 
