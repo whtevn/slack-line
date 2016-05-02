@@ -35,15 +35,15 @@ follow many rooms
 
 the most useful feature of this project, in my opinion, is the ability to follow many rooms in a single buffer. 
 
-    "[\"channel_1\", \"channel_2\"]" > slackpipe follow
+    "[\"channel_1\", \"channel_2\"]" | slackpipe follow
 
 or
 
-    cat follow_rooms.json > slackpipe follow
+    cat follow_rooms.json | slackpipe follow
 
 you may also separate the rooms into their own streams, writing to log files within a defined directory
 
-    cat follow_rooms.json > slackpipe follow --log ~/.slack/ --quiet
+    cat follow_rooms.json | slackpipe follow --log ~/.slack/ --quiet
 
 quiet is not required, but without it slackpipe will log to both the directory defined and stdout
 
@@ -67,6 +67,58 @@ for more information see
     slackpipe write --help
 
 recommended aliases
--------------------
+====================
+
+the nature of this project is that many tasks can be accomplished with the tools provided.
+However, in many cases, some work will be required on the part of the user to make the 
+project useful. Below are a few aliases and bash functions that will get you started
+
+write and follow
+-----------------
+
+ask a question in a specific room, and follow that room for a response
+
+    alias ask-mychannel='ask-slack new-test-channel'
+
+    ask-slack(){
+      local room=${1}
+      local question=${2}
+      echo $question | slackpipe.js write -c $room | slackpipe.js follow
+    }
+
+usage:
+
+    ask-mychannel "who wants to go to lunch?"
+
+or
+
+    ask-slack channel_2 "does anyone know what went wrong with the demo?"
 
 
+follow important rooms
+----------------------
+
+keeping a list of rooms to follow is easy, and allows watching for updates
+in many places while watching one output
+
+    alias follow-slack="cat ~/.my-slack-rooms.json | slackpipe.js follow"
+
+where ~/.my-slack-rooms.json is an array of channel names
+
+    [
+      "channel_1",
+      "channel_2"
+    ] 
+
+
+read recent history for a room
+------------------------------
+
+    sup(){
+      local room=${1}
+      room | slackpipe.js read -n 5 -t 120
+    }
+
+usage
+
+    sup channel_1
