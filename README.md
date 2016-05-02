@@ -1,115 +1,72 @@
+*slackpipe* - a command line interface for some simple interractions with slack.com 
 
-command line interface for some simple interractions with slack.com 
+Slack is an amazing communcation tool, and we use it extensively. However, because there are many rooms
+that I must follow, I find myself spending more time than I would like clicking between them. I wanted
+to be able to read all of my slack updates in a single stream. 
 
-this is a work in progress. feel free to contact through github with questions, concerns, or pull requests
+This is a work in progress. Feel free to contact through github with questions, concerns, or pull requests
 
 installation
 ============
   
-    npm install slack-line -g
+    npm install slackpipe -g
 
-configuration
-=============
+set up your token
+------------------
 
-configuration happens at `~/.slack_info.json` by default. This may be configured with the `-s` or `--slack-info` flags
+Your token may be sent in a few ways, the easiest for long-term use is an environment variable
 
-all configuration, aside from setting your slack token, is completely optional. Your name will be used based on your token
+    export SLACK_TOKEN='xoxp-239847-xxxx-2398-xxxxx'
 
-```js
-{
-  "user": {
-    "username": "Evan-Bot",
-    "icon_emoji": ":smiling-imp:"
-    "slack_token": "xoxp-2398234273-234892734723-2372439874-239487234"
-  }
-}
-```
+However, for the purposes of testing, all commands may be run with `-t` or `--token`. The command
+line argument takes precident.
 
-alternatively, slack_token may be set with the `SLACK_TOKEN` environment variable. `--slack-info` takes precidence, if the
-token exists.
+command line usage
+=================
 
-you may also set a default feed to read from and write to by setting `channel` in the config file
+the following is a brief overview of the project. For more information, see
 
-```js
-{
-  "user": {
-    "username": "Evan-Bot",
-    "icon_emoji": ":smiling-imp:"
-    "slack_token": "xoxp-2398234273-234892734723-2372439874-239487234"
-    "channel": "channel_1"
-  }
-}
-```
+  slackpipe --help
 
-this channel will be overridden by command line arguments
+for more information on advice for setting this project up for greatest effect, see the "recommended aliases" section below
 
-you may also follow channels by writing their events into a file. in order to do this, you must define the channels you wish to follow
+follow many rooms
+-----------------
 
-a file will be created for each room you follow. files are started fresh each time 
-the follow command is started
+the most useful feature of this project, in my opinion, is the ability to follow many rooms in a single buffer. 
 
-```js
-{
-  "user": {
-    "username": "Evan-Bot",
-    "icon_emoji": ":smiling-imp:"
-    "slack_token": "xoxp-2398234273-234892734723-2372439874-239487234"
-    "channel": "channel_1"
-  },
-  "follow":[
-    "channel_1",
-    "channel_2"
-  ]
-}
-```
+    "[\"channel_1\", \"channel_2\"]" > slackpipe follow
 
-finally, you may define the directory which these follow files will be saved. by default, they are saved in `~/.slack`. the history directory will be created if it doesn't already exist
+or
 
-```js
-{
-  "user": {
-    "username": "Evan-Bot",
-    "icon_emoji": ":smiling-imp:"
-    "slack_token": "xoxp-2398234273-234892734723-2372439874-239487234"
-    "channel": "channel_1"
-  },
-  "follow":[
-    "channel_1",
-    "channel_2"
-  ],
-  "history": "~/.slack"
-}
-```
+    cat follow_rooms.json > slackpipe follow
 
-options
-=======
+you may also separate the rooms into their own streams, writing to log files within a defined directory
 
-use the -h or --help flags to find out more about slack-line 
+    cat follow_rooms.json > slackpipe follow --log ~/.slack/ --quiet
 
--h and --help are also available on each subcommand
+quiet is not required, but without it slackpipe will log to both the directory defined and stdout
 
-read
-----
+write a message
+---------------
 
-read the last 20 messages from #channel_1
+    "my message" | slackpipe -c channel-name write
 
-    slackit.js read -n 20 -c channel_1
+or
 
-read the last 20 minutes of messages from #channel_1
+    slackpipe -c channel-name write -m "my message"
 
-    slackit.js read -t 20 -c channel_1
+by default all messages will come from your user unless you indicate otherwise
 
-write
------
+    "my message" | slackpipe -c channel-name write
 
-write a message to #channel_1
+write also accepts `--username` and `--emoji` to customize your message's look
 
-    slackit.js write -m "my message goes here" -c channel_1
+for more information see 
 
-follow
-------
+    slackpipe write --help
 
-follow a set of channels by piping their output into text files to tail, grep, or otherwise watch 
+recommended aliases
+-------------------
 
-channels are defined in `.slack_info.json`
 

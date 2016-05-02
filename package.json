@@ -1,5 +1,5 @@
 {
-  "name": "slack-line",
+  "name": "slackpipe",
   "version": "0.1.5",
   "description": "",
   "main": "index.js",
@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "babel-node index.js",
     "build": "babel -d build *.js lib/*.js bin/*.js && cp ./package.json ./build",
-    "bin": "babel-node bin/slackit.js"
+    "bin": "babel-node bin/slackpipe.js"
   },
   "directories": {
     "lib": "build/lib",

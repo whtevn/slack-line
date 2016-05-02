@@ -20,8 +20,8 @@ var minutes_ago = function minutes_ago(t) {
 };
 
 function start(slack_info) {
-  if (!slack_info.user || !slack_info.user.token) throw new Error("No slack token provided");
-  var query_obj = { token: slack_info.user.token };
+  if (!slack_info.token) throw new Error("No slack token provided");
+  var query_obj = { token: slack_info.token };
   return (0, _slack.slack_request)("rtm.start", query_obj).then(function (response) {
     return response.data;
   }).then(function (data) {
@@ -29,18 +29,11 @@ function start(slack_info) {
     var user_dictionary = get_dictionary([].concat(_toConsumableArray(data.users), _toConsumableArray(data.bots)));
     var channel_dictionary = get_dictionary([].concat(_toConsumableArray(data.channels), _toConsumableArray(data.groups)));
     var channel_name_dictionary = invert_object(channel_dictionary);
-    var followed_channels = data.channels.filter(function (channel) {
-      return slack_info.follow.indexOf(channel.id) > 0;
-    }).map(function (channel) {
-      return channel.id;
-    });
 
     return {
-      self: self,
       user_dictionary: user_dictionary,
       channel_dictionary: channel_dictionary,
       channel_name_dictionary: channel_name_dictionary,
-      followed_channels: followed_channels,
       slack_context: data
     };
   });
@@ -50,12 +43,11 @@ function read(slack_info, channel_name) {
   var constraints = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
   var log_function = arguments[3];
 
-  var channel = channel_name || slack_info["default-channel"];
-  if (!channel) throw new Error("no channel defined");
+  if (!channel_name) throw new Error("no channel defined");
   return start(slack_info).then(function (env) {
     var query_obj = {
-      token: slack_info.user.token,
-      channel: env.channel_name_dictionary[channel],
+      token: slack_info.token,
+      channel: env.channel_name_dictionary[channel_name],
       oldest: minutes_ago(constraints.oldest),
       count: constraints.count
     };
@@ -73,17 +65,16 @@ function read(slack_info, channel_name) {
 }
 
 function write(slack_info, channel_name, text) {
-  var channel = channel_name || slack_info["default-channel"];
-  if (!channel) throw new Error("no channel defined");
+  if (!channel_name) throw new Error("no channel defined");
   return start(slack_info).then(function (env) {
     var query_obj = {
-      token: slack_info.user.token,
-      channel: env.channel_name_dictionary[channel],
+      token: slack_info.token,
       link_names: 1,
+      channel: env.channel_name_dictionary[channel_name],
       text: text
     };
-    return (0, _slack.slack_post)("chat.postMessage", Object.assign({}, query_obj, slack_info.user)).then(function (_) {
-      return channel;
+    return (0, _slack.slack_post)("chat.postMessage", Object.assign({}, query_obj, slack_info)).then(function (_) {
+      return channel_name;
     });
   });
 }
@@ -91,19 +82,20 @@ function write(slack_info, channel_name, text) {
 function follow(slack_info, log_function) {
   if (!slack_info.follow) throw new Error("not following any channels or groups");
   return start(slack_info).then(function (env) {
-    var rtm = new RtmClient(slack_info.user.token, { logLevel: 'error' });
+    var rtm = new RtmClient(slack_info.token, { logLevel: 'error' });
     var CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS;
     var RTM_EVENTS = require('@slack/client').RTM_EVENTS;
     var followed_channels = slack_info.follow.reduce(function (map, channel_id) {
       var result = {};
       result[env.channel_name_dictionary[channel_id]] = channel_id;
+
       return Object.assign({}, map, result);
     }, {});
     rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
-      console.log('Logged in as ' + rtmStartData.self.name + ' to the ' + rtmStartData.team.name + ' team');
+      //console.log(`Logged in as ${rtmStartData.self.name} to the ${rtmStartData.team.name} team`);
     });
     rtm.on(RTM_EVENTS.ERROR, function (err) {
-      return console.log(err);
+      log_function({ text: err }, { id: message.channel, name: channel });
     });
     rtm.on(RTM_EVENTS.MESSAGE, function (message) {
       var channel = followed_channels[message.channel];
@@ -112,6 +104,7 @@ function follow(slack_info, log_function) {
       }
     });
     rtm.start();
+    return env;
   });
 }
 

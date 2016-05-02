@@ -7,8 +7,8 @@ const minutes_ago = (t) => {
 };
 
 export function start(slack_info){
-  if(!slack_info.user || !slack_info.user.token) throw new Error("No slack token provided");
-  const query_obj = {token: slack_info.user.token};
+  if(!slack_info.token) throw new Error("No slack token provided");
+  const query_obj = {token: slack_info.token};
   return slack_request("rtm.start", query_obj)
            .then(response => response.data)
            .then(data => {
@@ -16,30 +16,22 @@ export function start(slack_info){
              const user_dictionary = get_dictionary([...data.users, ...data.bots])
              const channel_dictionary = get_dictionary([...data.channels, ...data.groups]);
              const channel_name_dictionary = invert_object(channel_dictionary);
-             const followed_channels = data.channels
-                                           .filter(channel => {
-                                             return slack_info.follow.indexOf(channel.id) > 0
-                                           })
-                                           .map(channel => channel.id);
 
              return {
-               self,
                user_dictionary,
                channel_dictionary,
                channel_name_dictionary,
-               followed_channels,
                slack_context: data
              }
            })
 }
 
 export function read(slack_info, channel_name, constraints={}, log_function){
-  const channel = (channel_name || slack_info["default-channel"]);
-  if(!channel) throw new Error("no channel defined");
+  if(!channel_name) throw new Error("no channel defined");
   return start(slack_info).then(env => {
      const query_obj = {
-       token: slack_info.user.token,
-       channel: env.channel_name_dictionary[channel],
+       token: slack_info.token,
+       channel: env.channel_name_dictionary[channel_name],
        oldest: minutes_ago(constraints.oldest),
        count: constraints.count
      };
@@ -54,35 +46,37 @@ export function read(slack_info, channel_name, constraints={}, log_function){
 }
 
 export function write(slack_info, channel_name, text){
-  const channel = (channel_name || slack_info["default-channel"]);
-  if(!channel) throw new Error("no channel defined");
+  if(!channel_name) throw new Error("no channel defined");
   return start(slack_info).then(env => {
      const query_obj = {
-       token: slack_info.user.token,
-       channel: env.channel_name_dictionary[channel],
+       token: slack_info.token,
        link_names: 1,
+       channel: env.channel_name_dictionary[channel_name],
        text
      };
-    return slack_post("chat.postMessage", Object.assign({}, query_obj, slack_info.user))
-            .then(_ => channel)
+    return slack_post("chat.postMessage", Object.assign({}, query_obj, slack_info))
+            .then(_ => channel_name)
   })
 }
 
 export function follow(slack_info, log_function){
   if(!slack_info.follow) throw new Error("not following any channels or groups");
   return start(slack_info).then(env => {
-    const rtm = new RtmClient(slack_info.user.token, {logLevel: 'error'});
+    const rtm = new RtmClient(slack_info.token, {logLevel: 'error'});
     const CLIENT_EVENTS = require('@slack/client').CLIENT_EVENTS;
     const RTM_EVENTS = require('@slack/client').RTM_EVENTS;
     const followed_channels = slack_info.follow.reduce((map, channel_id) => {
       let result = {};
       result[env.channel_name_dictionary[channel_id]] = channel_id;
+
       return Object.assign({}, map, result);
     }, {})
     rtm.on(CLIENT_EVENTS.RTM.AUTHENTICATED, function (rtmStartData) {
-      console.log(`Logged in as ${rtmStartData.self.name} to the ${rtmStartData.team.name} team`);
+      //console.log(`Logged in as ${rtmStartData.self.name} to the ${rtmStartData.team.name} team`);
     })
-    rtm.on(RTM_EVENTS.ERROR, (err) => console.log(err))
+    rtm.on(RTM_EVENTS.ERROR, (err) => {
+        log_function({text: err}, {id: message.channel, name: channel});
+    })
     rtm.on(RTM_EVENTS.MESSAGE, function (message) {
       const channel = followed_channels[message.channel];
       if(channel){
@@ -90,6 +84,7 @@ export function follow(slack_info, log_function){
       }
     })
     rtm.start();
+    return env;
   })
 }
 
