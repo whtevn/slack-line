@@ -26,7 +26,7 @@ command line usage
 
 the following is a brief overview of the project. For more information, see
 
-  slackpipe --help
+    slackpipe.js --help
 
 for more information on advice for setting this project up for greatest effect, see the "recommended aliases" section below
 
@@ -35,36 +35,36 @@ follow many rooms
 
 the most useful feature of this project, in my opinion, is the ability to follow many rooms in a single buffer. 
 
-    "[\"channel_1\", \"channel_2\"]" | slackpipe follow
+    echo "[\"channel_1\", \"channel_2\"]" | slackpipe.js follow
 
 or
 
-    cat follow_rooms.json | slackpipe follow
+    cat follow_rooms.json | slackpipe.js follow
 
 you may also separate the rooms into their own streams, writing to log files within a defined directory
 
-    cat follow_rooms.json | slackpipe follow --log ~/.slack/ --quiet
+    cat follow_rooms.json | slackpipe.js follow --log ~/.slack/ --quiet
 
 quiet is not required, but without it slackpipe will log to both the directory defined and stdout
 
 write a message
 ---------------
 
-    "my message" | slackpipe -c channel-name write
+    "my message" | slackpipe.js -c channel-name write
 
 or
 
-    slackpipe -c channel-name write -m "my message"
+    slackpipe.js -c channel-name write -m "my message"
 
 by default all messages will come from your user unless you indicate otherwise
 
-    "my message" | slackpipe -c channel-name write
+    "my message" | slackpipe.js -c channel-name write
 
 write also accepts `--username` and `--emoji` to customize your message's look
 
 for more information see 
 
-    slackpipe write --help
+    slackpipe.js write --help
 
 recommended aliases
 ====================
@@ -114,9 +114,13 @@ where ~/.my-slack-rooms.json is an array of channel names
 read recent history for a room
 ------------------------------
 
+this is an example of a bash function which will read at most 15 messages
+over the last two hours from a particular room. other aliases may be made 
+from this to read from a particular room, or chain many readings together
+
     sup(){
       local room=${1}
-      room | slackpipe.js read -n 5 -t 120
+      room | slackpipe.js read -n 15 -t 120
     }
 
 usage
