@@ -1,4 +1,4 @@
-*slackpipe* - a command line interface for some simple interractions with slack.com 
+slackpipe - a command line interface for some simple interractions with slack.com 
 
 Slack is an amazing communcation tool, and we use it extensively. However, because there are many rooms
 that I must follow, I find myself spending more time than I would like clicking between them. I wanted
