@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.log_message = log_message;
-var dateFormat = require('dateFormat');
+var dateFormat = require('dateformat');
 var date_of = function date_of(entry) {
   return dateFormat(entry, "h:MMt");
 };
